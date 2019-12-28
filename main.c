@@ -1,6 +1,21 @@
 #include <stdio.h>
 
 
+struct _list {
+    char *text;
+    int lineNum;
+    int upper;  // uppered or not
+    int replace;    // replaced or not
+    struct list *next;   // next node
+};
+/* Example list node
+ *  {
+ *     line: "This is the first line.",
+ *     lineNum: 0
+ *  }
+ */
+struct list *root;
+
 int lineCount(char *filename) {
     FILE *fp;
     int count = 0;  // Line counter (result)
@@ -24,8 +39,18 @@ int lineCount(char *filename) {
     return count;
 }
 
+char *getLine(char *file, int lineNum) {
+    FILE *f = fopen(file, "r");
+    // TODO: Return the nth line from the file
+    fclose(file);
+}
 
 int main() {
-    lineCount("test.txt");
+    int count = lineCount("test.txt");
+
+    printf("Line count: %d\n", count);
+
+//    getLine("test.txt",2);
+
     return 0;
 }
