@@ -1,5 +1,6 @@
 #include <stdio.h>
-
+#include <stdlib.h>
+#include <string.h>
 
 struct _list {
     char *text;
@@ -40,8 +41,31 @@ int lineCount(char *filename) {
 }
 
 char *getLine(char *file, int lineNum) {
-    FILE *f = fopen(file, "r");
+
     // TODO: Return the nth line from the file
+    FILE *fp;
+    char *line = NULL;
+    size_t len = 0;
+    int i = 0;
+
+    fp = fopen(file, "r");
+    if (fp == NULL)
+        exit(EXIT_FAILURE);
+
+    while ((getline(&line, &len, fp)) != -1) {
+        if (i == lineNum) {
+            printf("%s", line);
+            return strdup(line);
+        }
+        i++;
+
+    }
+
+    fclose(fp);
+    if (line)
+        free(line);
+
+
     fclose(file);
 }
 
@@ -50,7 +74,7 @@ int main() {
 
     printf("Line count: %d\n", count);
 
-//    getLine("test.txt",2);
+//    printf("Line %d: %s\n", 2, getLine("test.txt", 2));
 
     return 0;
 }
