@@ -39,7 +39,7 @@
     </key>
   </component>
   <component name="RunManager">
-    <configuration name="Project3" type="CMakeRunConfiguration" factoryName="Application" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Project3" TARGET_NAME="Project3" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Project3" RUN_TARGET_NAME="Project3">
+    <configuration name="Project3" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-lpthread" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Project3" TARGET_NAME="Project3" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Project3" RUN_TARGET_NAME="Project3">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -65,35 +65,35 @@
       <option name="presentableId" value="Default" />
       <updated>1577533992818</updated>
       <workItem from="1577533994309" duration="319000" />
-      <workItem from="1577534328502" duration="3780000" />
+      <workItem from="1577534328502" duration="5460000" />
     </task>
     <servers />
   </component>
   <component name="WindowStateProjectService">
-    <state x="178" y="87" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1577534347421">
+    <state x="178" y="87" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1577544901981">
       <screen x="0" y="0" width="1440" height="860" />
     </state>
-    <state x="178" y="87" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1440.860@0.0.1440.860" timestamp="1577534347421" />
+    <state x="178" y="87" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1440.860@0.0.1440.860" timestamp="1577544901981" />
     <state x="503" y="187" width="424" height="479" key="FileChooserDialogImpl" timestamp="1577534346118">
       <screen x="0" y="0" width="1440" height="860" />
     </state>
     <state x="503" y="187" width="424" height="479" key="FileChooserDialogImpl/0.0.1440.860@0.0.1440.860" timestamp="1577534346118" />
-    <state width="1398" height="242" key="GridCell.Tab.0.bottom" timestamp="1577543504055">
+    <state width="1398" height="242" key="GridCell.Tab.0.bottom" timestamp="1577545132186">
       <screen x="0" y="0" width="1440" height="860" />
     </state>
-    <state width="1398" height="242" key="GridCell.Tab.0.bottom/0.0.1440.860@0.0.1440.860" timestamp="1577543504055" />
-    <state width="1398" height="242" key="GridCell.Tab.0.center" timestamp="1577543504054">
+    <state width="1398" height="242" key="GridCell.Tab.0.bottom/0.0.1440.860@0.0.1440.860" timestamp="1577545132186" />
+    <state width="1398" height="242" key="GridCell.Tab.0.center" timestamp="1577545132185">
       <screen x="0" y="0" width="1440" height="860" />
     </state>
-    <state width="1398" height="242" key="GridCell.Tab.0.center/0.0.1440.860@0.0.1440.860" timestamp="1577543504054" />
-    <state width="1398" height="242" key="GridCell.Tab.0.left" timestamp="1577543504054">
+    <state width="1398" height="242" key="GridCell.Tab.0.center/0.0.1440.860@0.0.1440.860" timestamp="1577545132185" />
+    <state width="1398" height="242" key="GridCell.Tab.0.left" timestamp="1577545132185">
       <screen x="0" y="0" width="1440" height="860" />
     </state>
-    <state width="1398" height="242" key="GridCell.Tab.0.left/0.0.1440.860@0.0.1440.860" timestamp="1577543504054" />
-    <state width="1398" height="242" key="GridCell.Tab.0.right" timestamp="1577543504055">
+    <state width="1398" height="242" key="GridCell.Tab.0.left/0.0.1440.860@0.0.1440.860" timestamp="1577545132185" />
+    <state width="1398" height="242" key="GridCell.Tab.0.right" timestamp="1577545132186">
       <screen x="0" y="0" width="1440" height="860" />
     </state>
-    <state width="1398" height="242" key="GridCell.Tab.0.right/0.0.1440.860@0.0.1440.860" timestamp="1577543504055" />
+    <state width="1398" height="242" key="GridCell.Tab.0.right/0.0.1440.860@0.0.1440.860" timestamp="1577545132186" />
     <state width="1398" height="269" key="GridCell.Tab.1.bottom" timestamp="1577539549137">
       <screen x="0" y="0" width="1440" height="860" />
     </state>

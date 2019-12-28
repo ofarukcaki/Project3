@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
+#include <unistd.h>
+
 
 struct _list {
     char *text;
@@ -16,6 +19,8 @@ struct _list {
  *  }
  */
 struct list *root;
+
+char *b = "W0rld";
 
 int lineCount(char *filename) {
     FILE *fp;
@@ -54,11 +59,9 @@ char *getLine(char *file, int lineNum) {
 
     while ((getline(&line, &len, fp)) != -1) {
         if (i == lineNum) {
-            printf("%s", line);
             return strdup(line);
         }
         i++;
-
     }
 
     fclose(fp);
@@ -66,15 +69,28 @@ char *getLine(char *file, int lineNum) {
         free(line);
 
 
-    fclose(file);
+    fclose(fp);
+    return NULL;
 }
 
+void *hello(void *arg) {
+    printf("Hello %s\n", b);
+    return NULL;
+}
+
+
 int main() {
+    int readThreadCount = 3;
     int count = lineCount("test.txt");
 
     printf("Line count: %d\n", count);
 
-//    printf("Line %d: %s\n", 2, getLine("test.txt", 2));
+    printf("Line %d: %s\n", 0, getLine("test.txt", 0));
 
+
+    pthread_t newThread;
+    pthread_create(&newThread, NULL, &hello, NULL);
+    pthread_join(newThread, NULL);
+//    sleep(5);
     return 0;
 }
