@@ -30,9 +30,15 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
   </component>
   <component name="RunManager">
-    <configuration name="Project3" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Project3" TARGET_NAME="Project3" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Project3" RUN_TARGET_NAME="Project3">
+    <configuration name="Project3" type="CMakeRunConfiguration" factoryName="Application" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Project3" TARGET_NAME="Project3" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Project3" RUN_TARGET_NAME="Project3">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -57,8 +63,35 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1577533992818</updated>
-      <workItem from="1577533994309" duration="109000" />
+      <workItem from="1577533994309" duration="319000" />
+      <workItem from="1577534328502" duration="1022000" />
     </task>
     <servers />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="178" y="87" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1577534347421">
+      <screen x="0" y="0" width="1440" height="860" />
+    </state>
+    <state x="178" y="87" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1440.860@0.0.1440.860" timestamp="1577534347421" />
+    <state x="503" y="187" width="424" height="479" key="FileChooserDialogImpl" timestamp="1577534346118">
+      <screen x="0" y="0" width="1440" height="860" />
+    </state>
+    <state x="503" y="187" width="424" height="479" key="FileChooserDialogImpl/0.0.1440.860@0.0.1440.860" timestamp="1577534346118" />
+    <state width="1398" height="217" key="GridCell.Tab.0.bottom" timestamp="1577534737218">
+      <screen x="0" y="0" width="1440" height="860" />
+    </state>
+    <state width="1398" height="217" key="GridCell.Tab.0.bottom/0.0.1440.860@0.0.1440.860" timestamp="1577534737218" />
+    <state width="1398" height="217" key="GridCell.Tab.0.center" timestamp="1577534737218">
+      <screen x="0" y="0" width="1440" height="860" />
+    </state>
+    <state width="1398" height="217" key="GridCell.Tab.0.center/0.0.1440.860@0.0.1440.860" timestamp="1577534737218" />
+    <state width="1398" height="217" key="GridCell.Tab.0.left" timestamp="1577534737217">
+      <screen x="0" y="0" width="1440" height="860" />
+    </state>
+    <state width="1398" height="217" key="GridCell.Tab.0.left/0.0.1440.860@0.0.1440.860" timestamp="1577534737217" />
+    <state width="1398" height="217" key="GridCell.Tab.0.right" timestamp="1577534737218">
+      <screen x="0" y="0" width="1440" height="860" />
+    </state>
+    <state width="1398" height="217" key="GridCell.Tab.0.right/0.0.1440.860@0.0.1440.860" timestamp="1577534737218" />
   </component>
 </project>
