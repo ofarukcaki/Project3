@@ -12,6 +12,17 @@ struct _list
     int replace;       // replaced or not
     struct list *next; // next node
 };
+
+struct read
+{
+    char *text;
+    int line;
+    int upper;   // uppered or not
+    int replace; // replaced or not
+};
+
+struct read *records;
+
 /* Example list node
  *  {
  *     line: "This is the first line.",
@@ -85,9 +96,23 @@ void *hello(void *arg)
     return NULL;
 }
 
-int limit = 10;
+int limit;
 int current = 0;
 pthread_mutex_t mutexRead;
+
+char *toUppercase(char *text)
+{
+    int i = 0;
+    char *str = strdup(text);
+
+    while (str[i])
+    {
+        if (str[i] >= 97 && str[i] <= 122)
+            str[i] -= 32;
+        i++;
+    }
+    return (str);
+}
 
 // determine the line to be read by a thread
 int getReadNum()
@@ -104,6 +129,23 @@ int getReadNum()
     return rv;
 }
 
+pthread_mutex_t mutexUpper;
+
+// return which line is going to be converted into uppercase
+int getUppercaseIndex()
+{
+    int i = 0;
+    pthread_mutex_lock(&mutexUpper);
+    while (i <= limit)
+    {
+        if (records[i].upper == 0)
+            return i;
+        i++;
+    }
+    pthread_mutex_unlock(&mutexUpper);
+    return -1;
+}
+
 void *tl(void *args)
 {
     long threadNum = (long)args;
@@ -111,12 +153,20 @@ void *tl(void *args)
     // keep reading lines until there will be no lines left to read
     while (line != -1)
     {
-        char * text = getLine("test.txt", line);
+        char *text = getLine("test.txt", line);
+        records[line].text = text;
+        records[line].line = line;
+        records[line].upper = 0;
+        records[line].replace = 0;
         /*
             create a struct and keep its address into array
             when check needed go to that adress and inspect the struct        
         */
-        printf("> : _%s_ Thread: %ld\n",text , threadNum);
+        printf("> : _%s(%d)_ Thread: %ld\n", records[line].text, records[line].line, threadNum);
+
+        if (records[7].line != -1)
+            printf("7 is null\n");
+
         // printf("line num: %d\n", line);
         line = getReadNum();
     }
@@ -124,15 +174,30 @@ void *tl(void *args)
 
 int main()
 {
-    int readThreadCount = 10;
+    int readThreadCount = 5;
     int count = lineCount("test.txt");
+    limit = count;
 
     printf("Line count: %d\n", count);
+    printf("_%s_\n", toUppercase("hello world."));
 
     // initialize read mutex
     pthread_mutex_init(&mutexRead, NULL);
 
     // printf("GetReadnum: %d\n", getReadNum());
+
+    struct read asd[count];
+    records = asd;
+    for (int i = 0; i < count; i++)
+    {
+        records[i].line = -1;
+    }
+
+    // records[0].line = 5;
+    // records[1].line = 6;
+
+    // printf("0:%d\n",records[0].line);
+    // printf("1:%d\n",records[1].line);
 
     pthread_t readThreads[readThreadCount];
 
