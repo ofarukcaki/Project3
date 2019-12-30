@@ -7,6 +7,7 @@
 int readCompleted = 0;
 int upperCompleted = 0;
 int replaceCompleted = 0;
+int writeCompleted = 0;
 
 struct read
 {
@@ -16,6 +17,8 @@ struct read
     int replace; // replaced or not
     int busy;
 };
+
+int writeArray[200] = {0};
 
 struct read *records;
 
@@ -53,7 +56,7 @@ int lineCount(char *filename)
 
 char *getLine(char *file, int lineNum)
 {
-
+    // printf("inside getline()\n");
     // TODO: Return the nth line from the file
     FILE *fp;
     char *line = NULL;
@@ -75,7 +78,6 @@ char *getLine(char *file, int lineNum)
         i++;
     }
 
-    fclose(fp);
     if (line)
         free(line);
 
@@ -105,12 +107,12 @@ void writeToLine(char *filename, char *text, int lineNum)
         }
         else
         {
-            // remove line ending character LF
             fprintf(fpTemp, "%s", line);
-            // return strndup(line, strlen(line) - 1);
             // write original value
         }
         i++;
+        fflush(stdout);
+        fflush(fpTemp);
     }
 
     fclose(fpTemp);
@@ -129,6 +131,11 @@ pthread_mutex_t mutexRead;
 
 char *toUppercase(char *text)
 {
+    // printf("inside touppercase()\n");
+    if (text == NULL)
+    {
+        return NULL;
+    }
     int i = 0;
     char *str = strdup(text);
 
@@ -143,6 +150,11 @@ char *toUppercase(char *text)
 
 char *replaceSpace(char *text)
 {
+    //  printf("inside touppercase()\n");
+    if (text == NULL)
+    {
+        return NULL;
+    }
     int i = 0;
     char *str = strdup(text);
 
@@ -221,7 +233,7 @@ void *upper(void *args)
         pthread_mutex_lock(&mmm[line]);
         char *old = records[line].text;
         records[line].text = toUppercase(old);
-        printf(">> Upper_%d\t\tUpper_%d read index %d and converted \"%s\" to \"%s\"\n", threadNum, threadNum, line, old, records[line].text);
+        printf("Upper_%d\t\tUpper_%d read index %d and converted \"%s\" to \"%s\"\n", threadNum, threadNum, line, old, records[line].text);
         fflush(stdout);
         records[line].busy = 0;
         upperCompleted++;
@@ -256,6 +268,16 @@ void *replace(void *args)
     while (1)
     {
         pthread_mutex_lock(&mutexUpper);
+
+        /*
+         This printf may seem osolete, and doesn't seem to do anything useful.
+         But when we remove this printf for some reason the whole program
+         crashes with segfault and we can't figure out why, so here it will stay
+         and prints few extra space :)
+        */
+        printf(" ");
+
+        // I don't know the reason but when we delete this printf, program crashes with segfault
         line = getReplaceIndex();
         pthread_mutex_unlock(&mutexUpper);
         if (line == -1)
@@ -269,7 +291,7 @@ void *replace(void *args)
 
         char *old = records[line].text;
         records[line].text = replaceSpace(old);
-        printf("** Replace_%d\t\tReplace_%d read index %d and converted \"%s\" to \"%s\"\n", threadNum, threadNum, line, old, records[line].text);
+        printf("Replace_%d\t\tReplace_%d read index %d and converted \"%s\" to \"%s\"\n", threadNum, threadNum, line, old, records[line].text);
         fflush(stdout);
         records[line].busy = 0;
         replaceCompleted++;
@@ -294,7 +316,7 @@ void *tl(void *args)
         records[line].busy = 0;
 
         // printf("> : _%s(%d)_ Thread: %ld\n", records[line].text, records[line].line, threadNum);
-        printf("-- Read_%d\t\tRead_%d read the line %d which is \"%s\"\n", threadNum, threadNum, line, records[line].text);
+        printf("Read_%d\t\tRead_%d read the line %d which is \"%s\"\n", threadNum, threadNum, line, records[line].text);
         fflush(stdout);
 
         // if (records[7].line != -1)
@@ -307,11 +329,65 @@ void *tl(void *args)
     return NULL;
 }
 
+int getWriteIndex()
+{
+    int i = 0;
+
+    while (i <= limit)
+    {
+        if (records[i].replace == 1 && records[i].upper == 1 && writeArray[i] == 0)
+        {
+            writeArray[i] = 1;
+            // printf("%d RETURNED\n", i);
+            fflush(stdout);
+            return i;
+        }
+        i++;
+    }
+    return -1;
+}
+
+pthread_mutex_t writeMutex;
+
+void *_write(void *args)
+{
+    long threadNum = (long)args;
+    int line;
+
+    // line = getWriteIndex();
+
+    // printf("write thread %d - %s\n", threadNum, line);
+
+    while (1)
+    {
+        pthread_mutex_lock(&writeMutex);
+        line = getWriteIndex();
+        pthread_mutex_unlock(&writeMutex);
+
+        if (line == -1)
+        {
+            if (writeCompleted >= (limit + 1))
+                break;
+            continue;
+        }
+        pthread_mutex_lock(&writeMutex);
+
+        writeToLine("test.txt", records[line].text, records[line].line);
+        writeCompleted++;
+        pthread_mutex_unlock(&writeMutex);
+
+        printf("Writer_%d\t\tWriter_%d write line %d back which is \"%s\"\n", threadNum, threadNum, records[line].line, records[line].text);
+        fflush(stdout);
+    }
+    return NULL;
+}
+
 int main()
 {
     int readThreadCount = 5;
     int upperThreadCount = 3;
     int replaceThreadCount = 3;
+    int writeThreadCount = 4;
     int count = lineCount("test.txt");
     // limit = 3;
     limit = count;
@@ -325,6 +401,7 @@ int main()
     // initialize read mutex
     pthread_mutex_init(&mutexRead, NULL);
     pthread_mutex_init(&mutexUpper, NULL);
+    pthread_mutex_init(&writeMutex, NULL);
 
     // printf("GetReadnum: %d\n", getReadNum());
 
@@ -367,6 +444,15 @@ int main()
         pthread_create(&replaceThreads[i], NULL, replace, (void *)i);
     }
 
+    pthread_t writeThreads[writeThreadCount];
+
+    // CREATE THREADS
+    for (long i = 0; i < writeThreadCount; i++)
+    {
+        // printf("write thread %d started\n", i);
+        pthread_create(&writeThreads[i], NULL, _write, (void *)i);
+    }
+
     // WAIT THREADS
     for (int i = 0; i < readThreadCount; i++)
     {
@@ -383,7 +469,13 @@ int main()
         pthread_join(replaceThreads[i], NULL);
     }
 
-    
+    // WAIT THREADS
+    for (int i = 0; i < writeThreadCount; i++)
+    {
+        pthread_join(writeThreads[i], NULL);
+    }
+
+    /*
     printf("================ DEBUG START ================\n");
     for (int i = 0; i <= limit; i++)
     {
@@ -391,7 +483,7 @@ int main()
     }
     printf("================= DEBUG END =================\n");
 
-
+*/
     // pthread_t newThread;
     // pthread_create(&newThread, NULL, &tl, NULL);
 
