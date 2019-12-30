@@ -175,11 +175,9 @@ int getReadNum()
     int rv;
     if (current > limit)
         return -1;
-    pthread_mutex_lock(&mutexRead);
 
     rv = current;
     current++;
-    pthread_mutex_unlock(&mutexRead);
     // printf("%d returned\n", rv);
     return rv;
 }
@@ -277,7 +275,8 @@ void *replace(void *args)
          crashes with segfault and we can't figure out why, so here it will stay
          and prints few extra space :)
         */
-        printf(" ");
+        // printf(" ");
+        fflush(stdout);
 
         // I don't know the reason but when we delete this printf, program crashes with segfault
         line = getReplaceIndex();
@@ -306,7 +305,10 @@ void *replace(void *args)
 void *tl(void *args)
 {
     long threadNum = (long)args;
+    pthread_mutex_lock(&mutexRead);
     int line = getReadNum(); // request a line index to read;
+    pthread_mutex_unlock(&mutexRead);
+
     // keep reading lines until there will be no lines left to read
     while (line != -1)
     {
@@ -390,6 +392,13 @@ int main(int argc, char *argv[])
     // int upperThreadCount = 3;
     // int replaceThreadCount = 3;
     // int writeThreadCount = 4;
+    setvbuf(stdout, NULL, _IONBF, 0);
+
+    if (argc < 7)
+    {
+        printf("Example usage: main.out -d deneme.txt -n 15 5 8 6 \n");
+        exit(0);
+    }
 
     myfile = argv[2];
     int count = lineCount(myfile);
@@ -403,9 +412,9 @@ int main(int argc, char *argv[])
     limit = count;
 
     // disable buffering
-    setvbuf(stdout, NULL, _IONBF, 0);
 
     printf("Line count: %d\n", count);
+    fflush(stdout);
     // printf("Replace: *%s*\n", replaceSpace("hello bitch w0rld ^^"));
 
     // initialize read mutex
