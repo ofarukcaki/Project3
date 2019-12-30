@@ -4,26 +4,32 @@
 #include <pthread.h>
 #include <unistd.h>
 
+// name of the text file we are using
 char *myfile;
 
+// hold,ng the values of how many operations to specific thread task is completed
 int readCompleted = 0;
 int upperCompleted = 0;
 int replaceCompleted = 0;
 int writeCompleted = 0;
 
+// a structure holding task's operations progresses and results
 struct read
 {
-    char *text;
-    int line;
-    int upper;   // uppered or not
-    int replace; // replaced or not
-    int busy;
+    char *text;  // line content
+    int line;    // line number (which line of the file)
+    int upper;   // already uppered or not
+    int replace; // already replaced or not
+    int busy;    // already taken by upper or replace
 };
 
-int writeArray[200] = {0};
+// a zero fileld array to determine if nth line is already processed by a write thread or not
+int writeArray[2000] = {0};
 
+// global records structure, we will use it inside threads in order to access progress of tasks
 struct read *records;
 
+// return the total number of of line of a given filename
 int lineCount(char *filename)
 {
     FILE *fp;
@@ -49,6 +55,7 @@ int lineCount(char *filename)
     return count;
 }
 
+// given a filename and a line number, it returns the text on the file's specific line
 char *getLine(char *file, int lineNum)
 {
     FILE *fp;
@@ -77,6 +84,9 @@ char *getLine(char *file, int lineNum)
     return NULL;
 }
 
+// given a filename, text to write and wic line to write into.
+// this function simply writes text value into file's provided line
+// used by writer threads
 void writeToLine(char *filename, char *text, int lineNum)
 {
     FILE *fp, *fpTemp;
@@ -116,10 +126,11 @@ void writeToLine(char *filename, char *text, int lineNum)
     remove("tempFile123.txt");
 }
 
-int limit;
-int current = 0;
+int limit;       // number of linecount of file, also our threshold
+int current = 0; // progress indicator for read threads
 pthread_mutex_t mutexRead;
 
+// converts given text to uppercase
 char *toUppercase(char *text)
 {
     if (text == NULL)
@@ -138,6 +149,7 @@ char *toUppercase(char *text)
     return (str);
 }
 
+// replaces all spaces with upeprcase in provided string
 char *replaceSpace(char *text)
 {
     if (text == NULL)
@@ -160,27 +172,31 @@ char *replaceSpace(char *text)
 int getReadNum()
 {
     int rv;
-    if (current > limit)
+    if (current > limit) // if all lines already given to threads to read, return -1
         return -1;
 
     rv = current;
-    current++;
+    current++; // increment our counter so next thread access to it can get a new line task
     return rv;
 }
-pthread_mutex_t mmm[200];
 
+// a big mutex to lock specific value if it's currently being acceessed by upper thread or replace thread to prevent conflict
+// so that a replace thread and uppercase thread will never run on the same arrayvalue of that time
+pthread_mutex_t mmm[2000];
+
+// a shared mutex for both upper and replace threads
 pthread_mutex_t mutexUpper;
 
 // return which line is going to be converted into uppercase
 int getUppercaseIndex()
 {
     int i = 0;
-
+    // iterate through all values
     while (i <= limit)
     {
         if (records[i].line != -1 && records[i].upper == 0 && records[i].busy == 0)
         {
-
+            // if the array element is avaialble to take, take it and mark it as busy
             records[i].upper = 1;
             records[i].busy = 1;
             return i;
@@ -190,6 +206,8 @@ int getUppercaseIndex()
     return -1;
 }
 
+// a function which run by uppercase threads,
+// it gets which value to convert uppercase from getUppercaseIndex() method and process it
 void *upper(void *args)
 {
     long threadNum = (long)args;
@@ -197,7 +215,6 @@ void *upper(void *args)
 
     while (1)
     {
-
         pthread_mutex_lock(&mutexUpper);
         line = getUppercaseIndex();
         pthread_mutex_unlock(&mutexUpper);
@@ -221,6 +238,7 @@ void *upper(void *args)
     return NULL;
 }
 
+// returns which line is going to be replaced with underscores next
 int getReplaceIndex()
 {
     int i = 0;
@@ -239,6 +257,8 @@ int getReplaceIndex()
     return -1;
 }
 
+// a function which run by replace threads
+// it gets which value to replaced with underscore from getReplaceIndex() method and process that value
 void *replace(void *args)
 {
     long threadNum = (long)args;
@@ -273,7 +293,8 @@ void *replace(void *args)
     return NULL;
 }
 
-void *tl(void *args)
+// runs by reader threads. read lines from the file and store them inside read struct by their index
+void *_read(void *args)
 {
     long threadNum = (long)args;
     pthread_mutex_lock(&mutexRead);
@@ -284,6 +305,7 @@ void *tl(void *args)
     while (line != -1)
     {
         char *text = getLine(myfile, line);
+        // fill the default values
         records[line].text = text;
         records[line].line = line;
         records[line].upper = 0;
@@ -299,6 +321,8 @@ void *tl(void *args)
     return NULL;
 }
 
+// returns an available index which is ready to write
+// which means a value provessed by both upper thread and replace thread
 int getWriteIndex()
 {
     int i = 0;
@@ -316,8 +340,11 @@ int getWriteIndex()
     return -1;
 }
 
+// a mutex lock whichused while writing into file
 pthread_mutex_t writeMutex;
 
+// a function run by write threads
+// get the write line indexfrom getWriteIndex() and process it
 void *_write(void *args)
 {
     long threadNum = (long)args;
@@ -349,6 +376,7 @@ void *_write(void *args)
 
 int main(int argc, char *argv[])
 {
+    // disable buffering
     setvbuf(stdout, NULL, _IONBF, 0);
 
     if (argc < 7)
@@ -365,20 +393,22 @@ int main(int argc, char *argv[])
     int replaceThreadCount = atoi(argv[6]);
     int writeThreadCount = atoi(argv[7]);
 
+    // set limit variable to line count
     limit = count;
-
-    // disable buffering
 
     printf("Line count: %d\n", count);
     fflush(stdout);
 
-    // initialize read mutex
+    // initialize mutexes
     pthread_mutex_init(&mutexRead, NULL);
     pthread_mutex_init(&mutexUpper, NULL);
     pthread_mutex_init(&writeMutex, NULL);
 
+    // a temporary struct array
     struct read asd[count];
     records = asd;
+    // set initial line values to -1
+    // which means not processed yet
     for (int i = 0; i < count; i++)
     {
         records[i].line = -1;
@@ -386,15 +416,15 @@ int main(int argc, char *argv[])
 
     pthread_t readThreads[readThreadCount];
 
-    // CREATE THREADS
+    // CREATE READ THREADS
     for (long i = 0; i < readThreadCount; i++)
     {
-        pthread_create(&readThreads[i], NULL, tl, (void *)i);
+        pthread_create(&readThreads[i], NULL, _read, (void *)i);
     }
 
     pthread_t upperThreads[upperThreadCount];
 
-    // CREATE THREADS
+    // CREATE UPPER THREADS
     for (long i = 0; i < upperThreadCount; i++)
     {
         pthread_create(&upperThreads[i], NULL, upper, (void *)i);
@@ -402,7 +432,7 @@ int main(int argc, char *argv[])
 
     pthread_t replaceThreads[replaceThreadCount];
 
-    // CREATE THREADS
+    // CREATE REPLACE THREADS
     for (long i = 0; i < replaceThreadCount; i++)
     {
         pthread_create(&replaceThreads[i], NULL, replace, (void *)i);
@@ -410,29 +440,29 @@ int main(int argc, char *argv[])
 
     pthread_t writeThreads[writeThreadCount];
 
-    // CREATE THREADS
+    // CREATE WRITE THREADS
     for (long i = 0; i < writeThreadCount; i++)
     {
         pthread_create(&writeThreads[i], NULL, _write, (void *)i);
     }
 
-    // WAIT THREADS
+    // WAIT READ THREADS
     for (int i = 0; i < readThreadCount; i++)
     {
         pthread_join(readThreads[i], NULL);
     }
-    // WAIT THREADS
+    // WAIT UPPER THREADS
     for (int i = 0; i < upperThreadCount; i++)
     {
         pthread_join(upperThreads[i], NULL);
     }
-    // WAIT THREADS
+    // WAIT REPLACE THREADS
     for (int i = 0; i < replaceThreadCount; i++)
     {
         pthread_join(replaceThreads[i], NULL);
     }
 
-    // WAIT THREADS
+    // WAIT WRITE THREADS
     for (int i = 0; i < writeThreadCount; i++)
     {
         pthread_join(writeThreads[i], NULL);
