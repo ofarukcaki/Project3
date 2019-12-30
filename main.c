@@ -4,6 +4,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
+char *myfile;
+
 int readCompleted = 0;
 int upperCompleted = 0;
 int replaceCompleted = 0;
@@ -308,7 +310,7 @@ void *tl(void *args)
     // keep reading lines until there will be no lines left to read
     while (line != -1)
     {
-        char *text = getLine("test.txt", line);
+        char *text = getLine(myfile, line);
         records[line].text = text;
         records[line].line = line;
         records[line].upper = 0;
@@ -372,7 +374,7 @@ void *_write(void *args)
         }
         pthread_mutex_lock(&writeMutex);
 
-        writeToLine("test.txt", records[line].text, records[line].line);
+        writeToLine(myfile, records[line].text, records[line].line);
         writeCompleted++;
         pthread_mutex_unlock(&writeMutex);
 
@@ -382,13 +384,21 @@ void *_write(void *args)
     return NULL;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-    int readThreadCount = 5;
-    int upperThreadCount = 3;
-    int replaceThreadCount = 3;
-    int writeThreadCount = 4;
-    int count = lineCount("test.txt");
+    // int readThreadCount = 5;
+    // int upperThreadCount = 3;
+    // int replaceThreadCount = 3;
+    // int writeThreadCount = 4;
+
+    myfile = argv[2];
+    int count = lineCount(myfile);
+
+    int readThreadCount = atoi(argv[4]);
+    int upperThreadCount = atoi(argv[5]);
+    int replaceThreadCount = atoi(argv[6]);
+    int writeThreadCount = atoi(argv[7]);
+
     // limit = 3;
     limit = count;
 
