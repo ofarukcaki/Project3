@@ -4,21 +4,13 @@
 #include <pthread.h>
 #include <unistd.h>
 
-struct _list
-{
-    char *text;
-    int lineNum;
-    int upper;         // uppered or not
-    int replace;       // replaced or not
-    struct list *next; // next node
-};
-
 struct read
 {
     char *text;
     int line;
     int upper;   // uppered or not
     int replace; // replaced or not
+    int busy;
 };
 
 struct read *records;
@@ -29,9 +21,6 @@ struct read *records;
  *     lineNum: 0
  *  }
  */
-struct list *root;
-
-char *b = "W0rld";
 
 int lineCount(char *filename)
 {
@@ -90,12 +79,6 @@ char *getLine(char *file, int lineNum)
     return NULL;
 }
 
-void *hello(void *arg)
-{
-    printf("Hello %s\n", b);
-    return NULL;
-}
-
 int limit;
 int current = 0;
 pthread_mutex_t mutexRead;
@@ -109,6 +92,20 @@ char *toUppercase(char *text)
     {
         if (str[i] >= 97 && str[i] <= 122)
             str[i] -= 32;
+        i++;
+    }
+    return (str);
+}
+
+char *replaceSpace(char *text)
+{
+    int i = 0;
+    char *str = strdup(text);
+
+    while (str[i])
+    {
+        if (str[i] == ' ')
+            str[i] = '_';
         i++;
     }
     return (str);
@@ -134,16 +131,82 @@ pthread_mutex_t mutexUpper;
 // return which line is going to be converted into uppercase
 int getUppercaseIndex()
 {
+    // pthread_mutex_lock(&mutexUpper);
     int i = 0;
-    pthread_mutex_lock(&mutexUpper);
-    while (i <= limit)
+
+    while (i < limit)
     {
-        if (records[i].upper == 0)
+        if (records[i].line != -1 && records[i].upper == 0 && records[i].busy == 0)
+        {
+
+            records[i].upper = 1;
+            records[i].busy = 1;
             return i;
+        }
         i++;
     }
-    pthread_mutex_unlock(&mutexUpper);
+    // pthread_mutex_unlock(&mutexUpper);
     return -1;
+}
+
+void *upper(void *args)
+{
+    long threadNum = (long)args;
+
+    pthread_mutex_lock(&mutexUpper);
+    int line = getUppercaseIndex();
+    pthread_mutex_unlock(&mutexUpper);
+
+    while (line != -1)
+    {
+        char *old = records[line].text;
+        records[line].text = toUppercase(old);
+        printf("Upper_%d\t\tUpper_%d read index %d and converted \"%s\" to \"%s\"\n", threadNum, threadNum, line, old, records[line].text);
+        records[line].busy = 0;
+        pthread_mutex_lock(&mutexUpper);
+        line = getUppercaseIndex();
+        pthread_mutex_unlock(&mutexUpper);
+    }
+    return NULL;
+}
+
+int getReplaceIndex()
+{
+    int i = 0;
+
+    while (i < limit)
+    {
+        if (records[i].line != -1 && records[i].replace == 0 && records[i].busy == 0)
+        {
+
+            records[i].replace = 1;
+            records[i].busy = 1;
+            return i;
+        }
+        i++;
+    }
+    return -1;
+}
+
+void *replace(void *args)
+{
+    long threadNum = (long)args;
+
+    pthread_mutex_lock(&mutexUpper);
+    int line = getReplaceIndex();
+    pthread_mutex_unlock(&mutexUpper);
+
+    while (line != -1)
+    {
+        char *old = records[line].text;
+        records[line].text = replaceSpace(old);
+        printf("Replace_%d\t\tReplace_%d read index %d and converted \"%s\" to \"%s\"\n", threadNum, threadNum, line, old, records[line].text);
+        records[line].busy = 0;
+        pthread_mutex_lock(&mutexUpper);
+        line = getReplaceIndex();
+        pthread_mutex_unlock(&mutexUpper);
+    }
+    return NULL;
 }
 
 void *tl(void *args)
@@ -158,31 +221,39 @@ void *tl(void *args)
         records[line].line = line;
         records[line].upper = 0;
         records[line].replace = 0;
-        /*
-            create a struct and keep its address into array
-            when check needed go to that adress and inspect the struct        
-        */
-        printf("> : _%s(%d)_ Thread: %ld\n", records[line].text, records[line].line, threadNum);
+        records[line].busy = 0;
 
-        if (records[7].line != -1)
-            printf("7 is null\n");
+        // printf("> : _%s(%d)_ Thread: %ld\n", records[line].text, records[line].line, threadNum);
+        printf("Read_%d\t\tRead_%d read the line %d which is \"%s\"\n", threadNum, threadNum, line, records[line].text);
+        // fflush(stdout);
+
+        // if (records[7].line != -1)
+        //     printf("7 is null\n");
 
         // printf("line num: %d\n", line);
         line = getReadNum();
     }
+    return NULL;
 }
 
 int main()
 {
     int readThreadCount = 5;
+    int upperThreadCount = 3;
+    int replaceThreadCount = 3;
     int count = lineCount("test.txt");
-    limit = count;
+    limit = 15;
+    // limit = count;
+
+    // disable buffering
+    setvbuf(stdout, NULL, _IONBF, 0);
 
     printf("Line count: %d\n", count);
-    printf("_%s_\n", toUppercase("hello world."));
+    // printf("Replace: *%s*\n", replaceSpace("hello bitch w0rld ^^"));
 
     // initialize read mutex
     pthread_mutex_init(&mutexRead, NULL);
+    pthread_mutex_init(&mutexUpper, NULL);
 
     // printf("GetReadnum: %d\n", getReadNum());
 
@@ -207,11 +278,39 @@ int main()
         pthread_create(&readThreads[i], NULL, tl, (void *)i);
     }
 
+    pthread_t upperThreads[upperThreadCount];
+
+    // CREATE THREADS
+    for (long i = 0; i < upperThreadCount; i++)
+    {
+        // printf("upper thread %d started\n", i);
+        pthread_create(&upperThreads[i], NULL, upper, (void *)i);
+    }
+
+    pthread_t replaceThreads[replaceThreadCount];
+
+    // CREATE THREADS
+    for (long i = 0; i < replaceThreadCount; i++)
+    {
+        // printf("upper thread %d started\n", i);
+        pthread_create(&replaceThreads[i], NULL, replace, (void *)i);
+    }
+
     // WAIT THREADS
     for (int i = 0; i < readThreadCount; i++)
     {
         pthread_join(readThreads[i], NULL);
     }
+    // WAIT THREADS
+    for (int i = 0; i < upperThreadCount; i++)
+    {
+        pthread_join(upperThreads[i], NULL);
+    }
+    // WAIT THREADS
+    // for (int i = 0; i < replaceThreadCount; i++)
+    // {
+    //     pthread_join(replaceThreads[i], NULL);
+    // }
 
     // pthread_t newThread;
     // pthread_create(&newThread, NULL, &tl, NULL);
