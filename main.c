@@ -4,6 +4,10 @@
 #include <pthread.h>
 #include <unistd.h>
 
+int readCompleted = 0;
+int upperCompleted = 0;
+int replaceCompleted = 0;
+
 struct read
 {
     char *text;
@@ -125,6 +129,7 @@ int getReadNum()
     // printf("%d returned\n", rv);
     return rv;
 }
+pthread_mutex_t mmm[200];
 
 pthread_mutex_t mutexUpper;
 
@@ -134,7 +139,7 @@ int getUppercaseIndex()
     // pthread_mutex_lock(&mutexUpper);
     int i = 0;
 
-    while (i < limit)
+    while (i <= limit)
     {
         if (records[i].line != -1 && records[i].upper == 0 && records[i].busy == 0)
         {
@@ -142,6 +147,10 @@ int getUppercaseIndex()
             records[i].upper = 1;
             records[i].busy = 1;
             return i;
+        }
+        else if (records[i].busy == 1)
+        {
+            // printf("cant get line %d becaue its busy\n", i);
         }
         i++;
     }
@@ -152,20 +161,31 @@ int getUppercaseIndex()
 void *upper(void *args)
 {
     long threadNum = (long)args;
+    int line;
 
-    pthread_mutex_lock(&mutexUpper);
-    int line = getUppercaseIndex();
-    pthread_mutex_unlock(&mutexUpper);
-
-    while (line != -1)
+    while (1)
     {
-        char *old = records[line].text;
-        records[line].text = toUppercase(old);
-        printf("Upper_%d\t\tUpper_%d read index %d and converted \"%s\" to \"%s\"\n", threadNum, threadNum, line, old, records[line].text);
-        records[line].busy = 0;
+
         pthread_mutex_lock(&mutexUpper);
         line = getUppercaseIndex();
         pthread_mutex_unlock(&mutexUpper);
+        if (line == -1)
+        {
+            if (readCompleted == 1 && upperCompleted >= (limit + 1))
+            {
+                // printf("UPPER COPLETED:%d / %d\n", upperCompleted, limit);
+                break;
+            }
+            continue;
+        }
+        pthread_mutex_lock(&mmm[line]);
+        char *old = records[line].text;
+        records[line].text = toUppercase(old);
+        printf(">> Upper_%d\t\tUpper_%d read index %d and converted \"%s\" to \"%s\"\n", threadNum, threadNum, line, old, records[line].text);
+        fflush(stdout);
+        records[line].busy = 0;
+        upperCompleted++;
+        pthread_mutex_unlock(&mmm[line]);
     }
     return NULL;
 }
@@ -174,7 +194,7 @@ int getReplaceIndex()
 {
     int i = 0;
 
-    while (i < limit)
+    while (i <= limit)
     {
         if (records[i].line != -1 && records[i].replace == 0 && records[i].busy == 0)
         {
@@ -191,21 +211,31 @@ int getReplaceIndex()
 void *replace(void *args)
 {
     long threadNum = (long)args;
+    int line;
 
-    pthread_mutex_lock(&mutexUpper);
-    int line = getReplaceIndex();
-    pthread_mutex_unlock(&mutexUpper);
-
-    while (line != -1)
+    while (1)
     {
-        char *old = records[line].text;
-        records[line].text = replaceSpace(old);
-        printf("Replace_%d\t\tReplace_%d read index %d and converted \"%s\" to \"%s\"\n", threadNum, threadNum, line, old, records[line].text);
-        records[line].busy = 0;
         pthread_mutex_lock(&mutexUpper);
         line = getReplaceIndex();
         pthread_mutex_unlock(&mutexUpper);
+        if (line == -1)
+        {
+            if (readCompleted == 1 && replaceCompleted >= (limit + 1))
+                break;
+            continue;
+        }
+
+        pthread_mutex_lock(&mmm[line]);
+
+        char *old = records[line].text;
+        records[line].text = replaceSpace(old);
+        printf("** Replace_%d\t\tReplace_%d read index %d and converted \"%s\" to \"%s\"\n", threadNum, threadNum, line, old, records[line].text);
+        fflush(stdout);
+        records[line].busy = 0;
+        replaceCompleted++;
+        pthread_mutex_unlock(&mmm[line]);
     }
+
     return NULL;
 }
 
@@ -224,8 +254,8 @@ void *tl(void *args)
         records[line].busy = 0;
 
         // printf("> : _%s(%d)_ Thread: %ld\n", records[line].text, records[line].line, threadNum);
-        printf("Read_%d\t\tRead_%d read the line %d which is \"%s\"\n", threadNum, threadNum, line, records[line].text);
-        // fflush(stdout);
+        printf("-- Read_%d\t\tRead_%d read the line %d which is \"%s\"\n", threadNum, threadNum, line, records[line].text);
+        fflush(stdout);
 
         // if (records[7].line != -1)
         //     printf("7 is null\n");
@@ -233,6 +263,7 @@ void *tl(void *args)
         // printf("line num: %d\n", line);
         line = getReadNum();
     }
+    readCompleted = 1;
     return NULL;
 }
 
@@ -242,8 +273,8 @@ int main()
     int upperThreadCount = 3;
     int replaceThreadCount = 3;
     int count = lineCount("test.txt");
-    limit = 15;
-    // limit = count;
+    // limit = 3;
+    limit = count;
 
     // disable buffering
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -307,15 +338,25 @@ int main()
         pthread_join(upperThreads[i], NULL);
     }
     // WAIT THREADS
-    // for (int i = 0; i < replaceThreadCount; i++)
-    // {
-    //     pthread_join(replaceThreads[i], NULL);
-    // }
+    for (int i = 0; i < replaceThreadCount; i++)
+    {
+        pthread_join(replaceThreads[i], NULL);
+    }
 
+    /*
+    printf("================ DEBUG START ================\n");
+    for (int i = 0; i <= limit; i++)
+    {
+        printf("(%d) %s\n", records[i].line, records[i].text);
+    }
+    printf("================= DEBUG END =================\n");
+
+*/
     // pthread_t newThread;
     // pthread_create(&newThread, NULL, &tl, NULL);
 
     // pthread_join(newThread, NULL);
     //    sleep(5);
+    // printf("rc: %d", readCompleted);
     return 0;
 }
