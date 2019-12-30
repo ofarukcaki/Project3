@@ -64,7 +64,9 @@ char *getLine(char *file, int lineNum)
     {
         if (i == lineNum)
         {
-            return strdup(line);
+            // remove line ending character LF
+            return strndup(line, strlen(line) - 1);
+            // return strdup(line);
         }
         i++;
     }
@@ -83,7 +85,7 @@ void *hello(void *arg)
     return NULL;
 }
 
-int limit = 5;
+int limit = 10;
 int current = 0;
 pthread_mutex_t mutexRead;
 
@@ -98,38 +100,58 @@ int getReadNum()
     rv = current;
     current++;
     pthread_mutex_unlock(&mutexRead);
+    // printf("%d returned\n", rv);
     return rv;
 }
 
 void *tl(void *args)
 {
+    long threadNum = (long)args;
+    int line = getReadNum(); // request a line index to read;
+    // keep reading lines until there will be no lines left to read
+    while (line != -1)
+    {
+        char * text = getLine("test.txt", line);
+        /*
+            create a struct and keep its address into array
+            when check needed go to that adress and inspect the struct        
+        */
+        printf("> : _%s_ Thread: %ld\n",text , threadNum);
+        // printf("line num: %d\n", line);
+        line = getReadNum();
+    }
 }
 
 int main()
 {
-    int readThreadCount = 3;
+    int readThreadCount = 10;
     int count = lineCount("test.txt");
 
     printf("Line count: %d\n", count);
 
-    printf("Line %d: %s\n", 0, getLine("test.txt", 0));
-
+    // initialize read mutex
     pthread_mutex_init(&mutexRead, NULL);
 
-    printf("GetReadnum: %d\n", getReadNum());
-    printf("GetReadnum: %d\n", getReadNum());
-    printf("GetReadnum: %d\n", getReadNum());
-    printf("GetReadnum: %d\n", getReadNum());
-    printf("GetReadnum: %d\n", getReadNum());
-    printf("GetReadnum: %d\n", getReadNum());
-    printf("GetReadnum: %d\n", getReadNum());
-    printf("GetReadnum: %d\n", getReadNum());
-    printf("GetReadnum: %d\n", getReadNum());
+    // printf("GetReadnum: %d\n", getReadNum());
 
-    pthread_t newThread;
-    pthread_create(&newThread, NULL, &hello, NULL);
+    pthread_t readThreads[readThreadCount];
 
-    pthread_join(newThread, NULL);
+    // CREATE THREADS
+    for (long i = 0; i < readThreadCount; i++)
+    {
+        pthread_create(&readThreads[i], NULL, tl, (void *)i);
+    }
+
+    // WAIT THREADS
+    for (int i = 0; i < readThreadCount; i++)
+    {
+        pthread_join(readThreads[i], NULL);
+    }
+
+    // pthread_t newThread;
+    // pthread_create(&newThread, NULL, &tl, NULL);
+
+    // pthread_join(newThread, NULL);
     //    sleep(5);
     return 0;
 }
